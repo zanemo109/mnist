@@ -7,14 +7,14 @@ from matplotlib import pyplot as plt
 
 from model import MLP
 
-hidden_1_size = 50
-hidden_2_size = 20
-EPOCHS = 1000
-lr = 0.1
+input_size = 784
+hidden_1_size = 100
+hidden_2_size = 50
+output_size = 10
+EPOCHS = 500
 
 train_df = pd.read_csv('./data/train.csv')
 test_df = pd.read_csv('./data/test.csv')
-
 
 data = train_df.to_numpy()
 labels = data[:, 0]
@@ -37,47 +37,42 @@ val_pixels_tensor, val_labels_tensor = torch.Tensor(val_pixels), torch.LongTenso
 train_pixels_tensor, train_labels_tensor = train_pixels_tensor.to(device), train_labels_tensor.to(device)
 val_pixels_tensor, val_labels_tensor = val_pixels_tensor.to(device), val_labels_tensor.to(device)
 
-input_size = 784
-hidden_1_size = 100
-hidden_2_size = 50
-output_size = 10
 
 model = MLP(input_size, hidden_1_size, hidden_2_size, output_size).to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = Adam(model.parameters())
 
-EPOCHS = 500
-
 def get_accuracy(predictions, actual):
     pred_labels = predictions.argmax(dim=1)
     return (pred_labels == actual).float().mean().item()
 
-for iteration in range(EPOCHS):
-    optimizer.zero_grad()
-    output = model(train_pixels_tensor)
-    train_loss = criterion(output, train_labels_tensor)
+def train(EPOCHS):
+    for iteration in range(EPOCHS):
+        optimizer.zero_grad()
+        output = model(train_pixels_tensor)
+        train_loss = criterion(output, train_labels_tensor)
 
-    train_accuracy = get_accuracy(output, train_labels_tensor)
+        train_accuracy = get_accuracy(output, train_labels_tensor)
 
-    train_loss.backward()
-    optimizer.step()
+        train_loss.backward()
+        optimizer.step()
 
-    if iteration % 10 == 0:
-        print(f'ITERATION {iteration} - Training accuracy: {train_accuracy}, Train loss: {train_loss.item()}')
-    
-    if iteration % 50 == 0:
-        model.eval()
-        with torch.no_grad():
-            val_output = model(val_pixels_tensor)
-            val_loss = criterion(val_output, val_labels_tensor)
-            val_accuracy = get_accuracy(val_output, val_labels_tensor)
-        print(f'ITERATION {iteration} - Validation accuracy: {val_accuracy}, Validation loss: {val_loss.item()}')
+        if iteration % 10 == 0:
+            print(f'ITERATION {iteration} - Training accuracy: {train_accuracy}, Train loss: {train_loss.item()}')
+        
+        if iteration % 50 == 0:
+            model.eval()
+            with torch.no_grad():
+                val_output = model(val_pixels_tensor)
+                val_loss = criterion(val_output, val_labels_tensor)
+                val_accuracy = get_accuracy(val_output, val_labels_tensor)
+            print(f'ITERATION {iteration} - Validation accuracy: {val_accuracy}, Validation loss: {val_loss.item()}')
 
-print(f'''FINAL TRAIN ACCURACY: {train_accuracy}
-FINAL TRAIN LOSS: {train_loss.item()}
-FINAL VALIDATION ACCURACY: {val_accuracy}
-FINAL VALIDATION LOSS: {val_loss.item()}
-''')
+    print(f'''FINAL TRAIN ACCURACY: {train_accuracy}
+    FINAL TRAIN LOSS: {train_loss.item()}
+    FINAL VALIDATION ACCURACY: {val_accuracy}
+    FINAL VALIDATION LOSS: {val_loss.item()}
+    ''')
 
 def get_prediction_digit(tensor):
     model.eval()
@@ -102,6 +97,7 @@ def show_random_predictions(model, val_pixels_tensor, val_labels_tensor, num_pre
             plt.axis('off')
         plt.show()
 
+train(EPOCHS)
 show_random_predictions(model, val_pixels_tensor, val_labels_tensor, 10)
 
 
